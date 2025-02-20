@@ -122,14 +122,15 @@ def extract_predictions(predictions_):
     return predictions_class, predictions_boxes, predictions_class
 
 
-def plot_image_with_boxes(img, boxes, pred_cls):
+def plot_image_with_boxes(i, img, boxes, pred_cls):
     text_size = 5
     text_th = 5
     rect_th = 6
 
     for i in range(len(boxes)):
         # Draw Rectangle with the coordinates
-
+        #print("shape:", img.shape)
+        #print("boxes[i][0]:", boxes[i][0])
         cv2.rectangle(
             img,
             (int(boxes[i][0][0]), int(boxes[i][0][1])),
@@ -149,7 +150,7 @@ def plot_image_with_boxes(img, boxes, pred_cls):
         )
     plt.axis("off")
     plt.imshow(img.astype(np.uint8), interpolation="nearest")
-    plt.show()
+    plt.savefig("image_withboxes_{}.png".format(i))
 
 
 def main():
@@ -161,23 +162,26 @@ def main():
     # Load image 1
     image_0 = cv2.imread("./10best-cars-group-cropped-1542126037.jpg")
     image_0 = cv2.cvtColor(image_0, cv2.COLOR_BGR2RGB)  # Convert to RGB
+    image_0 = image_0.transpose(2,0,1)
     print("image_0.shape:", image_0.shape)
 
     # Load image 2
     image_1 = cv2.imread("./banner-diverse-group-of-people-2.jpg")
     image_1 = cv2.cvtColor(image_1, cv2.COLOR_BGR2RGB)  # Convert to RGB
-    image_1 = cv2.resize(image_1, dsize=(image_0.shape[1], image_0.shape[0]), interpolation=cv2.INTER_CUBIC)
+    image_1 = cv2.resize(image_1, dsize=(image_0.shape[2], image_0.shape[1]), interpolation=cv2.INTER_CUBIC)
+    image_1 = image_1.transpose(2,0,1)
     print("image_1.shape:", image_1.shape)
 
     # Stack images
     image = np.stack([image_0, image_1], axis=0).astype(np.float32)
+    
     print("image.shape:", image.shape)
-
+    
     for i in range(image.shape[0]):
         plt.axis("off")
         plt.title("image {}".format(i))
-        plt.imshow(image[i].astype(np.uint8), interpolation="nearest")
-        plt.show()
+        plt.imshow(image[i].transpose(1,2,0).astype(np.uint8), interpolation="nearest")
+        plt.savefig("image_{}.png".format(i))
 
     # Make prediction on benign samples
     predictions = frcnn.predict(x=image)
@@ -189,7 +193,7 @@ def main():
         predictions_class, predictions_boxes, predictions_class = extract_predictions(predictions[i])
 
         # Plot predictions
-        plot_image_with_boxes(img=image[i].copy(), boxes=predictions_boxes, pred_cls=predictions_class)
+        plot_image_with_boxes(i=i, img=image[i].transpose(1,2,0).copy(), boxes=predictions_boxes, pred_cls=predictions_class)
 
     # Create and run attack
     eps = 32
@@ -202,8 +206,8 @@ def main():
     for i in range(image_adv.shape[0]):
         plt.axis("off")
         plt.title("image_adv {}".format(i))
-        plt.imshow(image_adv[i].astype(np.uint8), interpolation="nearest")
-        plt.show()
+        plt.imshow(image_adv[i].transpose(1,2,0).astype(np.uint8), interpolation="nearest")
+        plt.savefig("image_adv_{}.png".format(i))
 
     predictions_adv = frcnn.predict(x=image_adv)
 
@@ -214,7 +218,7 @@ def main():
         predictions_adv_class, predictions_adv_boxes, predictions_adv_class = extract_predictions(predictions_adv[i])
 
         # Plot predictions
-        plot_image_with_boxes(img=image_adv[i].copy(), boxes=predictions_adv_boxes, pred_cls=predictions_adv_class)
+        plot_image_with_boxes(i=i, img=image_adv[i].transpose(1,2,0).copy(), boxes=predictions_adv_boxes, pred_cls=predictions_adv_class)
 
 
 if __name__ == "__main__":
